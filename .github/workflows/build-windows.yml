@@ -54,13 +54,16 @@ jobs:
             if (-not $ready) { throw "Web 服务未在预期时间内启动" }
 
             $index = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/"
-            if ($index.Content -notmatch "把敏感信息，留在本地") { throw "首页静态资源未正确打包" }
+            if ($index.StatusCode -ne 200 -or $index.Content -notmatch "留在本地") { throw "首页静态资源未正确打包" }
 
             $css = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/static/app.css"
             if ($css.StatusCode -ne 200 -or $css.Content.Length -lt 1000) { throw "CSS 静态资源缺失" }
 
+            $js = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/static/app.js"
+            if ($js.StatusCode -ne 200 -or $js.Content -notmatch "api/config") { throw "JS 静态资源缺失" }
+
             $payload = @{
-              files = @(@{ name = "smoke.txt"; data = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("手机 13800138000")) })
+              files = @(@{ name = "smoke.txt"; data = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("email test@example.com")) })
               options = @{ strategy = "replace" }
             } | ConvertTo-Json -Depth 6
             $preview = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8765/api/preview" -ContentType "application/json" -Body $payload
