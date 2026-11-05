@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docmask"
+version = "1.0.0"
+description = "完全离线运行的本地文档脱敏工具"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "python-docx>=0.8.11",
+    "openpyxl>=3.0.10",
+    "python-pptx>=0.6.21",
+    "PyMuPDF>=1.23.0",
+]
+keywords = ["redaction", "privacy", "offline", "docx", "xlsx", "pptx", "pdf"]
+
+[project.scripts]
+docmask = "docmask.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["docmask*"]
+
+[tool.setuptools.package-data]
+"docmask.web" = ["static/*"]

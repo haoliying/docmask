@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+.screenshots/
+
+# 运行时产物（可能含敏感信息，切勿提交）
+redacted_output/
+restored_output/
+mapping.csv
+redaction_report.json
+*.tmp
+
+# 编辑器与工具目录
+.idea/
+.vscode/
+.trae-html-share-packages/

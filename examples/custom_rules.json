@@ -1,0 +1,33 @@
+{
+  "strategy": "replace",
+  "mask_char": "*",
+  "keep_length": false,
+  "strip_metadata": true,
+  "pdf_mode": "text",
+  "disabled": ["URL", "SOCIAL_CREDIT_CODE"],
+  "custom_words": {
+    "PERSON": ["张三", "李四", "王五"],
+    "ORG": ["某某科技有限公司", "示例研究院"],
+    "CUSTOM": ["项目代号-朱雀", "内部项目-白鹭"]
+  },
+  "custom_patterns": [
+    {
+      "type": "EMPLOYEE_ID",
+      "pattern": "EMP-\\d{6}",
+      "group": 0,
+      "priority": 88,
+      "validator": "",
+      "ignore_case": false,
+      "enabled": true
+    },
+    {
+      "type": "INTERNAL_CODE",
+      "pattern": "ZQ-\\d{4}-[A-Z]{2}",
+      "group": 0,
+      "priority": 76,
+      "validator": "",
+      "ignore_case": true,
+      "enabled": true
+    }
+  ]
+}

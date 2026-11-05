@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="docmask：完全离线运行的本地文档脱敏工具">
+  <title>docmask · 本地文档脱敏</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="page-noise" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="docmask 首页">
+      <span class="brand-mark" aria-hidden="true">DM</span>
+      <span class="brand-text">docmask<small>local redaction</small></span>
+    </a>
+    <div class="topbar-meta">
+      <span class="pulse" aria-hidden="true"></span>
+      <span>127.0.0.1</span>
+      <span class="slash">/</span>
+      <span>离线运行</span>
+      <span class="slash">/</span>
+      <span id="versionText" class="mono">v1.0.0</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">DOCUMENT REDACTION · NO NETWORK</p>
+        <h1>把敏感信息，<br><span class="accent">留在本地。</span></h1>
+        <p class="lede">
+          docmask 在本机识别并遮盖文档里的手机号、身份证号、姓名、地址、账号与密钥。
+          文件不上传，运行不需要网络。
+        </p>
+        <div class="ticker mono" aria-hidden="true">
+          <span>DOCX</span><span>XLSX</span><span>PPTX</span><span>PDF</span>
+          <span>TXT</span><span>CSV</span><span>JSON</span><span class="ticker-end">LOCAL ONLY</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="paper">
+          <div class="paper-head">
+            <span class="paper-file mono">CUSTOMER_FILE_03.DOCX</span>
+            <span class="paper-stamp">机密</span>
+          </div>
+          <div class="paper-line"><span class="line-label">姓名</span><span class="line-value short">张</span><span class="redact r1"></span></div>
+          <div class="paper-line"><span class="line-label">电话</span><span class="redact r2"></span><span class="tail mono">****8000</span></div>
+          <div class="paper-line"><span class="line-label">身份证</span><span class="redact r3"></span></div>
+          <div class="paper-line"><span class="line-label">地址</span><span class="line-text"></span><span class="redact r4"></span></div>
+          <div class="paper-line"><span class="line-label">邮箱</span><span class="line-text long"></span><span class="redact r5"></span></div>
+          <div class="paper-divider"></div>
+          <div class="paper-line small"><span class="redact r6"></span><span class="line-text long"></span></div>
+          <div class="paper-line small"><span class="line-text"></span><span class="redact r7"></span></div>
+          <div class="paper-corner mono">REDACTED / LOCAL</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace">
+      <div class="section-head">
+        <div class="section-index mono">01 / WORKSPACE</div>
+        <h2>选择文件与规则</h2>
+        <p>拖入文件，确认要识别的敏感类型，然后预览或直接脱敏。源文件始终保留。</p>
+      </div>
+
+      <div class="layout">
+        <div class="col-main">
+          <section class="card upload-card">
+            <div class="card-head">
+              <h3><span class="num mono">01</span> 文件</h3>
+              <button type="button" id="clearBtn" class="text-btn hidden">清空</button>
+            </div>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="选择或拖入文件">
+              <svg viewBox="0 0 48 48" class="upload-icon" aria-hidden="true">
+                <path d="M24 32V10m0 0-8 8m8-8 8 8M10 30v6a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="drop-title">拖入文件，或点击选择</div>
+              <div class="drop-hint" id="dropHint">支持 DOCX / XLSX / PPTX / PDF / TXT / CSV / JSON</div>
+              <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.pptx,.pdf,.txt,.text,.md,.markdown,.log,.rst,.ini,.cfg,.conf,.yaml,.yml,.xml,.html,.htm,.sql,.csv,.tsv,.json,.jsonl,.ndjson" hidden>
+            </div>
+            <ul id="fileList" class="file-list" aria-live="polite"></ul>
+            <div id="fileMeta" class="file-meta mono"></div>
+          </section>
+
+          <section class="card strategy-card">
+            <div class="card-head">
+              <h3><span class="num mono">02</span> 脱敏策略</h3>
+            </div>
+            <div class="strategy-grid" id="strategyGrid" role="radiogroup" aria-label="脱敏策略"></div>
+            <p class="strategy-note" id="strategyNote">全掩码：所有命中统一替换为 ***。</p>
+          </section>
+        </div>
+
+        <aside class="col-side">
+          <section class="card entities-card">
+            <div class="card-head">
+              <h3><span class="num mono">03</span> 识别规则</h3>
+              <div class="toggle-actions">
+                <button type="button" id="selectAllBtn" class="text-btn">全选</button>
+                <button type="button" id="selectNoneBtn" class="text-btn">清空</button>
+              </div>
+            </div>
+            <div id="entityGroups" class="entity-groups"></div>
+            <p class="entity-foot">人名、地址、机构等中文实体依赖标签与格式特征；可在高级设置中补充自定义词表。</p>
+          </section>
+        </aside>
+      </div>
+
+      <details class="advanced card">
+        <summary>
+          <span><span class="num mono">04</span> 高级设置</span>
+          <span class="summary-hint mono">OPTIONAL</span>
+        </summary>
+        <div class="advanced-grid">
+          <div class="field">
+            <label for="customWords">自定义敏感词表</label>
+            <textarea id="customWords" rows="5" spellcheck="false" placeholder="每行一个词；也可用 姓名:张三 / 公司:某某科技 指定类型&#10;项目代号-朱雀&#10;姓名:王五"></textarea>
+            <p class="hint">支持 PERSON、ORG、CUSTOM 类型。词表仅在本机处理。</p>
+          </div>
+          <div class="field">
+            <label for="rulesText">自定义正则规则（JSON，可选）</label>
+            <textarea id="rulesText" rows="5" spellcheck="false" class="mono" placeholder='{"custom_patterns":[{"type":"EMPLOYEE_ID","pattern":"EMP-\\\\d{6}"}]}'></textarea>
+            <p class="hint">格式见 <code>docmask rules init</code> 生成的示例文件。</p>
+          </div>
+          <div class="field field-inline">
+            <label for="maskChar">掩码字符</label>
+            <input id="maskChar" type="text" maxlength="1" value="*" autocomplete="off">
+          </div>
+          <div class="field field-inline">
+            <label for="pdfMode">PDF 输出</label>
+            <select id="pdfMode">
+              <option value="text">写入掩码文本</option>
+              <option value="box">仅覆盖色块</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="keepLength"> 全掩码时保留原文字符数</label>
+          <label class="check"><input type="checkbox" id="stripMetadata" checked> 清理作者、标题等文档元数据</label>
+        </div>
+      </details>
+
+      <div class="actionbar">
+        <div class="action-meta">
+          <span id="selectionSummary" class="mono">0 个文件 · 0 类规则</span>
+          <span class="action-sub">所有处理均在本机进程内完成</span>
+        </div>
+        <div class="action-buttons">
+          <button type="button" id="previewBtn" class="btn secondary" disabled>预览识别</button>
+          <button type="button" id="redactBtn" class="btn primary" disabled>
+            <span>开始脱敏</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <section id="previewPanel" class="card panel" hidden>
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">PREVIEW</p>
+            <h2>识别预览</h2>
+          </div>
+          <div class="panel-stat"><strong id="previewTotal">0</strong><span>处命中</span></div>
+        </div>
+        <div id="previewBody" class="preview-body"></div>
+        <p class="panel-note">预览只展示掩码后的片段；未识别的信息不会出现在这里。</p>
+      </section>
+
+      <section id="resultPanel" class="card panel result-panel" hidden>
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">COMPLETE</p>
+            <h2>脱敏完成</h2>
+          </div>
+          <a id="downloadBtn" class="btn primary" href="#" download>下载 ZIP</a>
+        </div>
+        <div id="resultBody" class="result-body"></div>
+        <div id="resultWarnings" class="warnings"></div>
+      </section>
+    </section>
+
+    <section class="principles">
+      <article>
+        <span class="principle-index mono">A</span>
+        <h3>不联网</h3>
+        <p>没有云端 API、没有外部字体或脚本。断网环境下也能完成全部识别与替换。</p>
+      </article>
+      <article>
+        <span class="principle-index mono">B</span>
+        <h3>可还原</h3>
+        <p>占位符策略会生成 mapping.csv，可用 <code>docmask restore</code> 按需还原。映射文件含原文，需单独保管。</p>
+      </article>
+      <article>
+        <span class="principle-index mono">C</span>
+        <h3>可审计</h3>
+        <p>每个文件生成命中统计与警告，报告不包含敏感原文，便于复核与留档。</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-mark mono">DOCMASK / <span id="footerVersion">v1.0.0</span></div>
+    <p>图片、扫描件、批注与图表中的文字不会被自动识别，请人工复核。源文件不会被修改或删除。</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
