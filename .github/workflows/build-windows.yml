@@ -38,6 +38,38 @@ jobs:
           if (-not (Test-Path "dist\docmask.exe")) { throw "docmask.exe 未生成" }
           & "dist\docmask.exe" --version
 
+      - name: Smoke test bundled Web UI
+        run: |
+          $proc = Start-Process -FilePath "dist\docmask.exe" -ArgumentList @("ui", "--no-browser", "--port", "8765") -PassThru
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              try {
+                $health = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/healthz" -TimeoutSec 2
+                if ($health.StatusCode -eq 200) { $ready = $true; break }
+              } catch {
+                Start-Sleep -Milliseconds 500
+              }
+            }
+            if (-not $ready) { throw "Web 服务未在预期时间内启动" }
+
+            $index = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/"
+            if ($index.Content -notmatch "把敏感信息，留在本地") { throw "首页静态资源未正确打包" }
+
+            $css = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8765/static/app.css"
+            if ($css.StatusCode -ne 200 -or $css.Content.Length -lt 1000) { throw "CSS 静态资源缺失" }
+
+            $payload = @{
+              files = @(@{ name = "smoke.txt"; data = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("手机 13800138000")) })
+              options = @{ strategy = "replace" }
+            } | ConvertTo-Json -Depth 6
+            $preview = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8765/api/preview" -ContentType "application/json" -Body $payload
+            if ($preview.total -lt 1) { throw "预览接口未识别到敏感信息" }
+            Write-Host "Web UI smoke test passed"
+          } finally {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Package ZIP
         run: |
           New-Item -ItemType Directory -Force dist\package | Out-Null
