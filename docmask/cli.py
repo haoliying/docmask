@@ -25,7 +25,13 @@ from .pipeline import (
 )
 from .handlers import load_builtin_handlers
 
-_COLOR = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+def _supports_color() -> bool:
+    stream = sys.stdout
+    return bool(getattr(stream, "isatty", lambda: False)()) and not os.environ.get("NO_COLOR")
+
+
+_COLOR = _supports_color()
 
 
 def _paint(text: str, code: str) -> str:

@@ -36,11 +36,32 @@ jobs:
       - name: Smoke test EXE
         run: |
           if (-not (Test-Path "dist\docmask.exe")) { throw "docmask.exe 未生成" }
-          & "dist\docmask.exe" --version
+          if (-not (Test-Path "dist\docmask-cli.exe")) { throw "docmask-cli.exe 未生成" }
+          & "dist\docmask-cli.exe" --version
+
+      - name: Smoke test desktop window
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP "gui-smoke.json"
+          Remove-Item $report -ErrorAction SilentlyContinue
+          $env:DOCMASK_SMOKE_REPORT = $report
+          $proc = Start-Process -FilePath "dist\docmask.exe" -PassThru
+          $exited = $proc.WaitForExit(120000)
+          Remove-Item Env:\DOCMASK_SMOKE_REPORT
+          $log = Join-Path $env:TEMP "docmask-desktop.log"
+          if (Test-Path $log) { Get-Content $log }
+          if (-not $exited) {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            throw "桌面窗口启动超时"
+          }
+          if ($proc.ExitCode -ne 0) { throw "桌面窗口启动失败，退出码 $($proc.ExitCode)" }
+          if (-not (Test-Path $report)) { throw "未生成桌面窗口冒烟报告" }
+          $data = Get-Content $report -Raw | ConvertFrom-Json
+          if (-not $data.loaded) { throw "桌面窗口未成功加载页面: $($data.error)" }
+          Write-Host "Desktop window smoke test passed"
 
       - name: Smoke test bundled Web UI
         run: |
-          $proc = Start-Process -FilePath "dist\docmask.exe" -ArgumentList @("ui", "--no-browser", "--port", "8765") -PassThru
+          $proc = Start-Process -FilePath "dist\docmask-cli.exe" -ArgumentList @("ui", "--no-browser", "--port", "8765") -PassThru
           try {
             $ready = $false
             for ($i = 0; $i -lt 30; $i++) {
@@ -77,6 +98,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist\package | Out-Null
           Copy-Item dist\docmask.exe dist\package\
+          Copy-Item dist\docmask-cli.exe dist\package\
           Copy-Item README.md dist\package\
           Copy-Item examples dist\package\examples -Recurse
           Compress-Archive -Force -Path dist\package\* -DestinationPath dist\docmask-windows-x64.zip

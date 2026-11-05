@@ -578,7 +578,12 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
-def serve(host: str = "127.0.0.1", port: int = 8765, open_browser: bool = True) -> None:
+def start_server(
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    announce: bool = True,
+) -> Tuple[Server, str, Path]:
+    """绑定本地服务但不进入事件循环，供浏览器模式和桌面窗口模式共用。"""
     load_builtin_handlers()
     root = _data_root()
     app = App(root)
@@ -595,16 +600,22 @@ def serve(host: str = "127.0.0.1", port: int = 8765, open_browser: bool = True) 
             continue
     if httpd is None:
         raise RuntimeError(f"无法监听 {host}:{port}，端口可能被占用")
-    httpd.verbose = True  # type: ignore[attr-defined]
+    httpd.verbose = announce  # type: ignore[attr-defined]
     httpd.allow_remote = not loopback  # type: ignore[attr-defined]
     httpd.app = app  # type: ignore[attr-defined]
     shown_host = "127.0.0.1" if host in {"0.0.0.0", "::", "[::]"} else host
     url = f"http://{shown_host}:{actual_port}/"
-    print(f"docmask {__version__} 本地服务已启动")
-    print(f"  访问地址  {url}")
-    print(f"  数据目录  {root}")
-    print("  所有处理均在本机完成，不会发起外部网络请求")
-    print("  Ctrl+C 停止")
+    if announce:
+        print(f"docmask {__version__} 本地服务已启动")
+        print(f"  访问地址  {url}")
+        print(f"  数据目录  {root}")
+        print("  所有处理均在本机完成，不会发起外部网络请求")
+        print("  Ctrl+C 停止")
+    return httpd, url, root
+
+
+def serve(host: str = "127.0.0.1", port: int = 8765, open_browser: bool = True) -> None:
+    httpd, url, _root = start_server(host, port)
     if open_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:

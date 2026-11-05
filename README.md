@@ -45,21 +45,22 @@ python -m docmask --help
 无需安装 Python，直接使用发布页的 `docmask-windows-x64.zip`：
 
 1. 解压 ZIP；
-2. 双击 `docmask.exe`，会自动启动本地 Web 界面并打开浏览器；
-3. 关闭控制台窗口即可停止服务。
+2. 双击 `docmask.exe`，会打开独立的桌面窗口（原生窗口，没有浏览器地址栏和标签页）；
+3. 关闭窗口即可停止程序。
 
-命令行用法：
+`docmask.exe` 是图形界面版，不显示黑色控制台窗口；命令行请使用同一目录下的 `docmask-cli.exe`：
 
 ```bat
-docmask.exe --help
-docmask.exe run .\文档目录 -o .\out --strategy replace
-docmask.exe preview .\合同.docx
-docmask.exe ui --port 8765 --no-browser
+docmask-cli.exe --help
+docmask-cli.exe run .\文档目录 -o .\out --strategy replace
+docmask-cli.exe preview .\合同.docx
+docmask-cli.exe ui --port 8765 --no-browser
 ```
 
 说明：
 
 - 支持 Windows 10/11 x64；EXE 未做代码签名，首次运行可能出现 SmartScreen 提示，选择“更多信息 → 仍要运行”即可。
+- 桌面窗口基于系统自带的 WebView2（Edge 内核）；若系统缺少该组件，会退化为 Edge/Chrome 的无地址栏应用窗口，再退化为默认浏览器。
 - EXE 运行时仍然完全离线，只监听 `127.0.0.1`。
 - 本地构建：在 Windows 仓库根目录执行 `powershell -ExecutionPolicy Bypass -File scripts/build_windows_exe.ps1`。
 - 自动发布：推送 `v*` 标签后，GitHub Actions 会运行测试、构建 EXE，并把 ZIP 与 `SHA256SUMS.txt` 上传到 Release。

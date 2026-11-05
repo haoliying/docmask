@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import os
+import threading
 import unittest
+import urllib.request
 
-from docmask.web.server import _policy_from_options, _safe_filename, _STATIC_DIR
+from docmask.desktop import _icon_path, run_app
+from docmask.web.server import (
+    _STATIC_DIR,
+    _policy_from_options,
+    _safe_filename,
+    start_server,
+)
 
 
 class WebPolicyTests(unittest.TestCase):
@@ -57,6 +66,30 @@ class StaticAssetTests(unittest.TestCase):
             path = _STATIC_DIR / name
             self.assertTrue(path.is_file(), f"缺少静态资源 {name}")
             self.assertGreater(path.stat().st_size, 0)
+
+
+class DesktopTests(unittest.TestCase):
+    def test_icon_is_bundled(self) -> None:
+        icon = _icon_path()
+        self.assertIsNotNone(icon)
+        self.assertTrue(os.path.isfile(icon))
+
+    def test_run_app_is_callable(self) -> None:
+        self.assertTrue(callable(run_app))
+
+    def test_start_server_serves_healthz(self) -> None:
+        httpd, _url, _root = start_server(port=0, announce=False)
+        worker = threading.Thread(target=httpd.serve_forever, daemon=True)
+        worker.start()
+        try:
+            port = httpd.server_address[1]
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/healthz", timeout=5
+            ) as response:
+                self.assertEqual(response.status, 200)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
 
 
 if __name__ == "__main__":

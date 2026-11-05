@@ -18,13 +18,17 @@ python -m PyInstaller --noconfirm --clean docmask.spec
 if (-not (Test-Path "dist\docmask.exe")) {
     throw "构建失败：未找到 dist\docmask.exe"
 }
+if (-not (Test-Path "dist\docmask-cli.exe")) {
+    throw "构建失败：未找到 dist\docmask-cli.exe"
+}
 
 Write-Host "==> 冒烟测试"
-& "dist\docmask.exe" --version
+& "dist\docmask-cli.exe" --version
 
 Write-Host "==> 打包 ZIP 与校验和"
 New-Item -ItemType Directory -Force dist\package | Out-Null
 Copy-Item dist\docmask.exe dist\package\
+Copy-Item dist\docmask-cli.exe dist\package\
 Copy-Item README.md dist\package\
 Copy-Item examples dist\package\examples -Recurse
 Compress-Archive -Force -Path "dist\package\*" -DestinationPath "dist\docmask-windows-x64.zip"
