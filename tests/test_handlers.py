@@ -276,6 +276,31 @@ class XlsxHandlerTests(unittest.TestCase):
             result.close()
 
 
+    def test_person_column_with_header(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "people.xlsx")
+            dst = os.path.join(tmp, "people_out.xlsx")
+            wb = Workbook()
+            ws = wb.active
+            ws["A1"] = "姓名"
+            ws["B1"] = "手机号"
+            ws["A2"] = "张三"
+            ws["B2"] = "13800138000"
+            ws["A3"] = "李四"
+            ws["B3"] = "13900139000"
+            wb.save(src)
+
+            policy = make_policy(strategy="replace")
+            XlsxHandler().process(src, dst, Redactor(policy).transform, policy)
+            result = load_workbook(dst)
+            sheet = result.active
+            self.assertEqual(sheet["A2"].value, "[NAME_001]")
+            self.assertEqual(sheet["A3"].value, "[NAME_002]")
+            self.assertEqual(sheet["B2"].value, "[MOBILE_001]")
+            self.assertEqual(sheet["B3"].value, "[MOBILE_002]")
+            result.close()
+
+
 @unittest.skipUnless(xlrd is not None and xlwt is not None, "需要 xlrd/xlwt")
 class XlsHandlerTests(unittest.TestCase):
     def test_cells_merge_and_warnings(self) -> None:
@@ -309,6 +334,28 @@ class XlsHandlerTests(unittest.TestCase):
             self.assertEqual(sheet.cell_value(2, 1), "[EMAIL_001]")
             self.assertEqual(sheet.cell_value(3, 0), "地址：[ADDR_001]")
             self.assertIn("[MOBILE_001]", XlsHandler().extract_text(dst))
+
+    def test_person_column_with_header(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "people.xls")
+            dst = os.path.join(tmp, "people_out.xls")
+            wb = xlwt.Workbook()
+            ws = wb.add_sheet("名单")
+            ws.write(0, 0, "姓名")
+            ws.write(0, 1, "手机号")
+            ws.write(1, 0, "张三")
+            ws.write(1, 1, "13800138000")
+            ws.write(2, 0, "李四")
+            ws.write(2, 1, "13900139000")
+            wb.save(src)
+
+            policy = make_policy(strategy="replace")
+            XlsHandler().process(src, dst, Redactor(policy).transform, policy)
+            result = xlrd.open_workbook(dst)
+            sheet = result.sheet_by_index(0)
+            self.assertEqual(sheet.cell_value(1, 0), "[NAME_001]")
+            self.assertEqual(sheet.cell_value(2, 0), "[NAME_002]")
+            self.assertEqual(sheet.cell_value(1, 1), "[MOBILE_001]")
 
 
 @unittest.skipUnless(Workbook is not None, "需要 openpyxl")

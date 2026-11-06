@@ -8,7 +8,12 @@ from typing import Dict, List, Set, Tuple
 
 from ..masking import apply_replacements
 from ..models import Policy, Replacement
-from .base import BaseHandler, Transformer
+from .base import (
+    BaseHandler,
+    Transformer,
+    is_person_header,
+    person_cell_changes,
+)
 
 try:
     import xlrd
@@ -58,12 +63,29 @@ class XlsHandler(BaseHandler):
         book = self._load(src)
         lines: List[str] = []
         for sheet in book.sheets():
+            person_columns = self._person_columns(sheet)
             for row in range(sheet.nrows):
                 for col in range(sheet.ncols):
                     cell = sheet.cell(row, col)
                     if cell.ctype == xlrd.XL_CELL_TEXT and isinstance(cell.value, str):
-                        lines.append(cell.value)
+                        if col in person_columns and row > person_columns[col]:
+                            lines.append("姓名:" + cell.value)
+                        else:
+                            lines.append(cell.value)
         return "\n".join(lines)
+
+    @staticmethod
+    def _person_columns(sheet) -> Dict[int, int]:
+        """返回“姓名”列表头所在的列索引（0 起）与该表头所在行。"""
+        columns: Dict[int, int] = {}
+        if xlrd is None:
+            return columns
+        for row in range(sheet.nrows):
+            for col in range(sheet.ncols):
+                cell = sheet.cell(row, col)
+                if cell.ctype == xlrd.XL_CELL_TEXT and is_person_header(cell.value):
+                    columns[col] = min(columns.get(col, row), row)
+        return columns
 
     @staticmethod
     def _sheet_name(name: str, index: int) -> str:
@@ -84,11 +106,21 @@ class XlsHandler(BaseHandler):
                     covered.add((row, col))
         return anchors, covered
 
-    def _cell_value(self, book, cell, transform: Transformer, warnings: List[str]):
+    def _cell_value(
+        self,
+        book,
+        cell,
+        transform: Transformer,
+        warnings: List[str],
+        person: bool = False,
+    ):
         ctype = cell.ctype
         value = cell.value
         if ctype == xlrd.XL_CELL_TEXT:
-            changes: List[Replacement] = transform(value)
+            if person:
+                changes: List[Replacement] = person_cell_changes(transform, value)
+            else:
+                changes = transform(value)
             return apply_replacements(value, changes) if changes else value
         if ctype == xlrd.XL_CELL_DATE:
             try:
@@ -125,13 +157,18 @@ class XlsHandler(BaseHandler):
         for index, sheet in enumerate(book.sheets()):
             ws = output.add_sheet(self._sheet_name(sheet.name, index))
             anchors, covered = self._merged_layout(sheet)
+            person_columns = self._person_columns(sheet)
             for row in range(sheet.nrows):
                 for col in range(sheet.ncols):
                     position = (row, col)
                     if position in covered and position not in anchors:
                         continue
                     value = self._cell_value(
-                        book, sheet.cell(row, col), transform, warnings
+                        book,
+                        sheet.cell(row, col),
+                        transform,
+                        warnings,
+                        person=col in person_columns and row > person_columns[col],
                     )
                     if position in anchors:
                         row_end, col_end = anchors[position]

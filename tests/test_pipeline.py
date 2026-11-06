@@ -171,6 +171,26 @@ class RedactionJobTests(unittest.TestCase):
 
 
 @unittest.skipUnless(Workbook is not None, "需要 openpyxl")
+class SheetPreviewTests(unittest.TestCase):
+    def test_person_column_is_detected_in_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "people.xlsx")
+            wb = Workbook()
+            ws = wb.active
+            ws["A1"] = "姓名"
+            ws["A2"] = "张三"
+            ws["A3"] = "李四"
+            wb.save(path)
+
+            preview = preview_file(path, make_policy(strategy="replace"))
+            self.assertIsNone(preview.error)
+            self.assertEqual(preview.counts.get("PERSON"), 2)
+            for item in preview.items:
+                self.assertNotIn("张三", item.preview)
+                self.assertNotIn("李四", item.preview)
+
+
+@unittest.skipUnless(Workbook is not None, "需要 openpyxl")
 class FakeXlsPipelineTests(unittest.TestCase):
     def test_output_extension_follows_real_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

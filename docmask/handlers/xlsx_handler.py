@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import io
 import os
-from typing import List
+from typing import Dict, List
 
 from ..masking import apply_replacements
 from ..models import Policy, Replacement
-from .base import BaseHandler, Transformer
+from .base import (
+    BaseHandler,
+    Transformer,
+    is_person_header,
+    person_cell_changes,
+)
 
 try:
     from openpyxl import load_workbook
@@ -48,14 +53,33 @@ class XlsxHandler(BaseHandler):
                     parts.append(part)
         return parts
 
+    @staticmethod
+    def _person_columns(ws) -> Dict[int, int]:
+        """返回“姓名”列表头所在的列索引（0 起）与该表头所在行。"""
+        columns: Dict[int, int] = {}
+        for row in ws.iter_rows():
+            for cell in row:
+                if is_person_header(cell.value):
+                    index = cell.column - 1
+                    columns[index] = min(columns.get(index, cell.row), cell.row)
+        return columns
+
     def extract_text(self, src: str) -> str:
         wb = self._load(src)
         lines: List[str] = []
         for ws in wb.worksheets:
+            person_columns = self._person_columns(ws)
             for row in ws.iter_rows():
                 for cell in row:
                     if isinstance(cell.value, str):
-                        lines.append(cell.value)
+                        index = cell.column - 1
+                        if (
+                            index in person_columns
+                            and cell.row > person_columns[index]
+                        ):
+                            lines.append("姓名:" + cell.value)
+                        else:
+                            lines.append(cell.value)
                     if cell.comment is not None and cell.comment.text:
                         lines.append(cell.comment.text)
             for part in self._header_footer_texts(ws):
@@ -73,6 +97,7 @@ class XlsxHandler(BaseHandler):
         for ws in wb.worksheets:
             if getattr(ws, "_images", None):
                 image_found = True
+            person_columns = self._person_columns(ws)
             for row in ws.iter_rows():
                 for cell in row:
                     value = cell.value
@@ -80,7 +105,14 @@ class XlsxHandler(BaseHandler):
                         if value.startswith("="):
                             formula_found = True
                         else:
-                            changes: List[Replacement] = transform(value)
+                            index = cell.column - 1
+                            if (
+                                index in person_columns
+                                and cell.row > person_columns[index]
+                            ):
+                                changes = person_cell_changes(transform, value)
+                            else:
+                                changes = transform(value)
                             if changes:
                                 cell.value = apply_replacements(value, changes)
                     if cell.comment is not None:
