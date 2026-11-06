@@ -66,8 +66,18 @@ def load_builtin_handlers() -> None:
     from .json_handler import JsonHandler
     from .docx_handler import DocxHandler
     from .xlsx_handler import XlsxHandler
+    from .xls_handler import XlsHandler
     from .pptx_handler import PptxHandler
     from .pdf_handler import PdfHandler
 
-    for cls in (TextHandler, CsvHandler, JsonHandler, DocxHandler, XlsxHandler, PptxHandler, PdfHandler):
+    for cls in (
+        TextHandler,
+        CsvHandler,
+        JsonHandler,
+        DocxHandler,
+        XlsxHandler,
+        XlsHandler,
+        PptxHandler,
+        PdfHandler,
+    ):
         register(cls())

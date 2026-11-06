@@ -101,6 +101,12 @@ def _write_report(path: str, loaded: bool, url: str, error: str = "") -> None:
 def _run_native(url: str, smoke_report: Optional[str]) -> int:
     import webview  # 延迟导入，缺少桌面组件时不影响其他模式
 
+    # pywebview 默认取消下载，显式开启后由它弹出系统“另存为”对话框。
+    try:
+        webview.settings["ALLOW_DOWNLOADS"] = True
+    except Exception:
+        _log("当前 pywebview 版本不支持 ALLOW_DOWNLOADS")
+
     window = webview.create_window(
         WINDOW_TITLE,
         url,

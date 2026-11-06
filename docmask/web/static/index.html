@@ -23,7 +23,7 @@
       <span class="slash">/</span>
       <span>离线运行</span>
       <span class="slash">/</span>
-      <span id="versionText" class="mono">v1.1.0</span>
+      <span id="versionText" class="mono">v1.1.1</span>
     </div>
   </header>
 
@@ -37,7 +37,7 @@
           文件不上传，运行不需要网络。
         </p>
         <div class="ticker mono" aria-hidden="true">
-          <span>DOCX</span><span>XLSX</span><span>PPTX</span><span>PDF</span>
+          <span>DOCX</span><span>XLSX</span><span>XLS</span><span>PPTX</span><span>PDF</span>
           <span>TXT</span><span>CSV</span><span>JSON</span><span class="ticker-end">LOCAL ONLY</span>
         </div>
       </div>
@@ -79,8 +79,8 @@
                 <path d="M24 32V10m0 0-8 8m8-8 8 8M10 30v6a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <div class="drop-title">拖入文件，或点击选择</div>
-              <div class="drop-hint" id="dropHint">支持 DOCX / XLSX / PPTX / PDF / TXT / CSV / JSON</div>
-              <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.pptx,.pdf,.txt,.text,.md,.markdown,.log,.rst,.ini,.cfg,.conf,.yaml,.yml,.xml,.html,.htm,.sql,.csv,.tsv,.json,.jsonl,.ndjson" hidden>
+              <div class="drop-hint" id="dropHint">支持 DOCX / XLSX / XLS / PPTX / PDF / TXT / CSV / JSON</div>
+              <input type="file" id="fileInput" multiple accept=".docx,.xlsx,.xls,.pptx,.pdf,.txt,.text,.md,.markdown,.log,.rst,.ini,.cfg,.conf,.yaml,.yml,.xml,.html,.htm,.sql,.csv,.tsv,.json,.jsonl,.ndjson" hidden>
             </div>
             <ul id="fileList" class="file-list" aria-live="polite"></ul>
             <div id="fileMeta" class="file-meta mono"></div>
@@ -203,7 +203,7 @@
   </main>
 
   <footer class="footer">
-    <div class="footer-mark mono">DOCMASK / <span id="footerVersion">v1.1.0</span></div>
+    <div class="footer-mark mono">DOCMASK / <span id="footerVersion">v1.1.1</span></div>
     <p>图片、扫描件、批注与图表中的文字不会被自动识别，请人工复核。源文件不会被修改或删除。</p>
   </footer>
 

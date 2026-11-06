@@ -14,6 +14,7 @@ from docmask.handlers.pdf_handler import PdfHandler
 from docmask.handlers.pptx_handler import PptxHandler
 from docmask.handlers.text_handler import TextHandler
 from docmask.handlers.textio import read_text_with_encoding
+from docmask.handlers.xls_handler import XlsHandler
 from docmask.handlers.xlsx_handler import XlsxHandler
 from docmask.masking import Redactor, Restorer, load_mapping
 from tests.helpers import make_policy
@@ -38,6 +39,13 @@ except Exception:  # pragma: no cover
     Workbook = None  # type: ignore
     load_workbook = None  # type: ignore
     Comment = None  # type: ignore
+
+try:
+    import xlrd
+    import xlwt
+except Exception:  # pragma: no cover
+    xlrd = None  # type: ignore
+    xlwt = None  # type: ignore
 
 try:
     from pptx import Presentation
@@ -266,6 +274,41 @@ class XlsxHandlerTests(unittest.TestCase):
             self.assertFalse(result.properties.creator)
             self.assertIn("[MOBILE_001]", XlsxHandler().extract_text(dst))
             result.close()
+
+
+@unittest.skipUnless(xlrd is not None and xlwt is not None, "需要 xlrd/xlwt")
+class XlsHandlerTests(unittest.TestCase):
+    def test_cells_merge_and_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "a.xls")
+            dst = os.path.join(tmp, "a_out.xls")
+            wb = xlwt.Workbook()
+            ws = wb.add_sheet("客户")
+            ws.write(0, 0, "联系人：张三")
+            ws.write(1, 0, "手机号")
+            ws.write(1, 1, "13800138000")
+            ws.write(2, 0, "邮箱")
+            ws.write(2, 1, "alice@example.com")
+            ws.write_merge(3, 3, 0, 1, "地址：北京市朝阳区")
+            wb.save(src)
+
+            policy = make_policy(
+                strategy="replace",
+                custom_words={"PERSON": ["张三"], "ADDRESS": ["北京市朝阳区"]},
+            )
+            warnings = XlsHandler().process(
+                src, dst, Redactor(policy).transform, policy
+            )
+            self.assertTrue(any(".xls" in item for item in warnings))
+
+            result = xlrd.open_workbook(dst)
+            sheet = result.sheet_by_index(0)
+            self.assertEqual(sheet.name, "客户")
+            self.assertEqual(sheet.cell_value(0, 0), "联系人：[NAME_001]")
+            self.assertEqual(sheet.cell_value(1, 1), "[MOBILE_001]")
+            self.assertEqual(sheet.cell_value(2, 1), "[EMAIL_001]")
+            self.assertEqual(sheet.cell_value(3, 0), "地址：[ADDR_001]")
+            self.assertIn("[MOBILE_001]", XlsHandler().extract_text(dst))
 
 
 @unittest.skipUnless(Presentation is not None, "需要 python-pptx")
