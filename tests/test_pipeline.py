@@ -17,6 +17,11 @@ from docmask.pipeline import (
 from docmask.models import JobSummary
 from tests.helpers import make_policy
 
+try:
+    from openpyxl import Workbook
+except Exception:  # pragma: no cover
+    Workbook = None  # type: ignore
+
 
 def _write(path: str, content: str, encoding: str = "utf-8") -> None:
     parent = os.path.dirname(path)
@@ -163,6 +168,25 @@ class RedactionJobTests(unittest.TestCase):
             _read(os.path.join(restored, "sub", "b.md")),
             _read(os.path.join(self.src, "sub", "b.md")),
         )
+
+
+@unittest.skipUnless(Workbook is not None, "需要 openpyxl")
+class FakeXlsPipelineTests(unittest.TestCase):
+    def test_output_extension_follows_real_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "in")
+            os.makedirs(src, exist_ok=True)
+            path = os.path.join(src, "fake.xls")
+            wb = Workbook()
+            wb.active["A1"] = "13800138000"
+            wb.save(path)
+
+            files, _ = collect_inputs([src])
+            out = os.path.join(tmp, "out")
+            summary = RedactionJob(make_policy(strategy="replace"), out).run(files)
+            self.assertEqual(summary.ok_files, 1)
+            self.assertEqual(summary.files[0].output, "fake.xlsx")
+            self.assertTrue(os.path.exists(os.path.join(out, "fake.xlsx")))
 
 
 class ReportTests(unittest.TestCase):

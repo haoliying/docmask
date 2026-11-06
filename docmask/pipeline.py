@@ -187,6 +187,9 @@ class RedactionJob:
                 error="不支持的文件格式",
             )
         dst = self._destination(item.source, item.relative)
+        adjusted = handler.adjust_destination(item.source, dst)
+        if adjusted != dst:
+            dst = _unique_path(adjusted, self._used_outputs)
         before = dict(self.masker.counts)
         try:
             warnings = handler.process(
@@ -404,6 +407,9 @@ class RestoreJob:
                 continue
             rel = _safe_rel(item.relative)
             dst = _unique_path(os.path.join(self.out_dir, rel), self._used_outputs)
+            adjusted = handler.adjust_destination(item.source, dst)
+            if adjusted != dst:
+                dst = _unique_path(adjusted, self._used_outputs)
             before = self.restorer.count
             try:
                 warnings = handler.process(

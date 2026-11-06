@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import zipfile
 from typing import Dict, List, Set, Tuple
 
 from ..masking import apply_replacements
@@ -27,6 +28,20 @@ class XlsHandler(BaseHandler):
     name = "xls"
     extensions = (".xls",)
 
+    @staticmethod
+    def _is_ooxml(src: str) -> bool:
+        """扩展名为 .xls 但内容其实是 xlsx（ZIP + xl/workbook.xml）时返回 True。"""
+        try:
+            with zipfile.ZipFile(src) as zf:
+                return "xl/workbook.xml" in zf.namelist()
+        except Exception:
+            return False
+
+    def adjust_destination(self, src: str, dst: str) -> str:
+        if self._is_ooxml(src) and dst.lower().endswith(".xls"):
+            return dst[:-4] + ".xlsx"
+        return dst
+
     def _load(self, src: str):
         if xlrd is None:
             raise RuntimeError("缺少 xlrd 依赖，无法处理 .xls（请离线安装依赖）")
@@ -36,6 +51,10 @@ class XlsHandler(BaseHandler):
             raise RuntimeError(f"无法读取 .xls 文件：{exc}") from exc
 
     def extract_text(self, src: str) -> str:
+        if self._is_ooxml(src):
+            from .xlsx_handler import XlsxHandler
+
+            return XlsxHandler().extract_text(src)
         book = self._load(src)
         lines: List[str] = []
         for sheet in book.sheets():
@@ -86,6 +105,15 @@ class XlsHandler(BaseHandler):
     def process(
         self, src: str, dst: str, transform: Transformer, policy: Policy
     ) -> List[str]:
+        if self._is_ooxml(src):
+            from .xlsx_handler import XlsxHandler
+
+            warnings = XlsxHandler().process(src, dst, transform, policy)
+            warnings.insert(
+                0,
+                "文件扩展名为 .xls，但实际是 .xlsx 格式，已按 .xlsx 脱敏并输出 .xlsx",
+            )
+            return warnings
         if xlwt is None:
             raise RuntimeError("缺少 xlwt 依赖，无法写出 .xls（请离线安装依赖）")
         book = self._load(src)

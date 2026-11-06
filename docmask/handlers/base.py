@@ -27,6 +27,10 @@ class BaseHandler:
     def can_restore(self) -> bool:
         return True
 
+    def adjust_destination(self, src: str, dst: str) -> str:
+        """按文件实际内容调整输出路径，例如扩展名与实际格式不一致时。"""
+        return dst
+
     @staticmethod
     def _ensure_parent(dst: str) -> None:
         parent = os.path.dirname(os.path.abspath(dst))

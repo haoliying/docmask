@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import os
 from typing import List
 
 from ..masking import apply_replacements
@@ -21,6 +23,10 @@ class XlsxHandler(BaseHandler):
     def _load(self, src: str):
         if load_workbook is None:
             raise RuntimeError("缺少 openpyxl 依赖，无法处理 .xlsx（请离线安装依赖）")
+        # openpyxl 会按扩展名拒绝打开，这里对“扩展名与实际格式不一致”的文件改用字节流读取。
+        if os.path.splitext(src)[1].lower() not in (".xlsx", ".xlsm", ".xltx", ".xltm"):
+            with open(src, "rb") as fh:
+                return load_workbook(io.BytesIO(fh.read()))
         return load_workbook(src)
 
     def _header_footer_texts(self, ws) -> List[object]:

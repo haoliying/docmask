@@ -311,6 +311,31 @@ class XlsHandlerTests(unittest.TestCase):
             self.assertIn("[MOBILE_001]", XlsHandler().extract_text(dst))
 
 
+@unittest.skipUnless(Workbook is not None, "需要 openpyxl")
+class FakeXlsHandlerTests(unittest.TestCase):
+    def test_xlsx_content_with_xls_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "fake.xls")
+            dst = os.path.join(tmp, "fake_out.xlsx")
+            wb = Workbook()
+            ws = wb.active
+            ws["A1"] = "手机号"
+            ws["B1"] = "13800138000"
+            wb.save(src)
+
+            handler = XlsHandler()
+            adjusted = handler.adjust_destination(src, os.path.join(tmp, "fake_out.xls"))
+            self.assertEqual(os.path.basename(adjusted), "fake_out.xlsx")
+
+            policy = make_policy(strategy="replace")
+            warnings = handler.process(src, dst, Redactor(policy).transform, policy)
+            self.assertTrue(any(".xlsx" in item for item in warnings))
+            result = load_workbook(dst)
+            self.assertEqual(result.active["B1"].value, "[MOBILE_001]")
+            result.close()
+            self.assertIn("[MOBILE_001]", handler.extract_text(dst))
+
+
 @unittest.skipUnless(Presentation is not None, "需要 python-pptx")
 class PptxHandlerTests(unittest.TestCase):
     def test_text_table_notes_and_metadata(self) -> None:
